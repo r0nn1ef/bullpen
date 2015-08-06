@@ -127,15 +127,17 @@ function load_bullpen_item($rid) {
       $bullpen->changed = (int)$row['changed'];
       $bullpen->files = array();
     }
-    $file = array(
-      'file' => file_load((int)$row['fid']),
-      'status' => (int)$row['status'],
-      'created' => (int)$row['f_created'],
-      'changed' => (int)$row['f_changed'],
-      'note' => trim($row['note']),
-      'processed_by' => ((int)$row['processed_by'] == 0 ? NULL : user_load((int)$row['processed_by']))
-    );
-    $bullpen->files[(int)$row['fid']] = $file;
+    if ( (int)$row['fid'] > 0 ) {
+      $file = array(
+        'file' => file_load((int)$row['fid']),
+        'status' => (int)$row['status'],
+        'created' => (int)$row['f_created'],
+        'changed' => (int)$row['f_changed'],
+        'note' => trim($row['note']),
+        'processed_by' => ((int)$row['processed_by'] == 0 ? NULL : user_load((int)$row['processed_by']))
+      );
+      $bullpen->files[(int)$row['fid']] = $file;
+    }
   }
 
   return $bullpen;
