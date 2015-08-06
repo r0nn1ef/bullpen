@@ -1,0 +1,144 @@
+<?php
+/**
+ * @file bullpen.module
+ * Allows files to be uploaded and assigned to nodes in a holding area for approval.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function bullpen_help($path, $arg) {
+  switch ($path) {
+    // Main module help for the block module
+    case 'admin/help#bullpen':
+      return '<p>' . t('Allows files to be uploaded and assigned to nodes in a holding area for approval.') . '</p>';
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function bullpen_menu() {
+  $items = array();
+
+  $items['bullpen'] = array(
+    'title' => 'Upload',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('bullpen_upload_form'),
+    'access arguments' => array('upload files to bullpen'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'bullpen.pages.inc'
+  );
+  $items['bullpen/upload'] = array(
+    'title' => 'Submit files for review',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['node/%node/bullpen'] = array(
+    'title' => 'Files pending approval',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('bullpen_approval_form', 1),
+    'access arguments' => array('approve bullpen files'),
+    'file' => 'bullpen.pages.inc'
+  );
+
+  $items['node/%node/bullpen/%bullpen_item'] = array(
+    'title' => 'File details',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('bullpen_item_approval_form', 3),
+    'access arguments' => array('approve bullpen files'),
+    'file' => 'bullpen.pages.inc'
+  );
+
+  $items['bullpen_autocomplete'] = array(
+    'title' => 'Bullpen autocomplete',
+    'page callback' => 'bullpen_autocomplete',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'bullpen.pages.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function bullpen_permission() {
+  $permissions = array(
+    'upload files to bullpen' => array(
+      'title' => t('Upload files to bullpen'),
+      'description' => t('Allows users to upload files/images to a &quot;bullpen&quot; holding area.'),
+    ),
+    'approve bullpen files' => array(
+      'title' => t('Approve bullpen files'),
+      'description' => t('Approve files uploaded to the &quot;bullpen&quot; holding area for nodes.'),
+      'restrict access' => TRUE,
+    ),
+    'administer bullpen settings' => array(
+      'title' => t('Administer bullpen settings'),
+      'description' => t('Change various settings for the Bullpen configuration.'),
+      'restrict access' => TRUE,
+    ),
+  );
+
+  return $permissions;
+}
+
+function bullpen_access($permission, $node) {
+  $supported_types = variable_get('bullpen_supported_node_types', array());
+  if ( user_access($permission) && in_array($node->type, $supported_types)) {
+    return TRUE;
+  }
+  return FALSE;
+}
+
+function load_bullpen_item($rid) {
+  $query = db_select('bullpen_request', 'r')
+    ->fields('r', array('rid', 'description', 'entity_id', 'uid', 'created', 'changed'));
+  $query->leftJoin('bullpen_files', 'bf', 'r.rid=bf.rid');
+
+  $query->addField('bf', 'fid');
+  $query->addField('bf', 'status');
+  $query->addField('bf', 'created', 'f_created');
+  $query->addField('bf', 'changed', 'f_changed');
+  $query->addField('bf', 'note');
+  $query->addField('bf', 'processed_by');
+
+  $query->condition('r.rid', $rid, '=');
+  $query->orderBy('bf.fid, r.rid');
+  $result = $query->execute();
+
+  if ($result->rowCount() == 0) {
+    return FALSE;
+  }
+
+  $bullpen = FALSE;
+
+  while ( $row = $result->fetchAssoc() ) {
+    if (!$bullpen) {
+      $description = trim($row['description']);
+      $bullpen = new stdClass();
+      $bullpen->rid = (int)$row['rid'];
+      $bullpen->description = empty($description) ? NULL : $description;
+      $bullpen->entity_id = (int)$row['entity_id'];
+      $bullpen->author = user_load((int)$row['uid']);
+      $bullpen->created = (int)$row['created'];
+      $bullpen->changed = (int)$row['changed'];
+      $bullpen->files = array();
+    }
+    $file = array(
+      'file' => file_load((int)$row['fid']),
+      'status' => (int)$row['status'],
+      'created' => (int)$row['f_created'],
+      'changed' => (int)$row['f_changed'],
+      'note' => trim($row['note']),
+      'processed_by' => ((int)$row['processed_by'] == 0 ? NULL : user_load((int)$row['processed_by']))
+    );
+    $bullpen->files[(int)$row['fid']] = $file;
+  }
+
+  return $bullpen;
+}
+
+require_once dirname( __FILE__ ) . '/bullpen.block.inc';

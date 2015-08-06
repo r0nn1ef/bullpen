@@ -1,0 +1,125 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: rrf011
+ * Date: 8/4/2015
+ * Time: 11:41 AM
+ */
+function bullpen_schema() {
+  return array(
+    'bullpen_request' => array(
+      'description' => 'Tracks user file submissions and assigns them to entities in an approval hold or "bullpen".',
+      'fields' => array(
+        'rid' => array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Primary identifier for the bullpen request.',
+        ),
+        'description' => array(
+          'type' => 'text',
+          'size' => 'medium',
+          'description' => 'Notes about the request supplied by the user whom uploaded the files.'
+        ),
+        'entity_id' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'The entity ID that this request is supposed to apply to.',
+        ),
+        'uid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'UID of the user whom made the request.',
+        ),
+        'created' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp that the request was created.',
+        ),
+        'changed' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp that the request was updated.',
+        ),
+      ),
+      'indexes' => array(
+        'idx_eid' => array('entity_id'),
+        'idx_uid' => array('uid'),
+        'idx_created' => array('created'),
+      ),
+      'foreign keys' => array(
+        'user_uid' => array('table' => 'users', 'columns' => array('uid' => 'uid'))
+      ),
+      'primary key' => array('rid'),
+    ),
+    'bullpen_files' => array(
+      'description' => 'Lookup table to tie uploaded files managed by Drupal to a "bullpen" for an entity.',
+      'fields' => array(
+        'rid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'default' => 0,
+          'not null' => TRUE,
+          'description' => 'Foreign key to the bullpen_request table.',
+        ),
+        'fid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'default' => 0,
+          'not null' => TRUE,
+          'description' => 'Foreign key to the file_managed table for the managed file.',
+        ),
+        'status' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'default' => 0,
+          'not null' => TRUE,
+          'description' => 'Whether or not the image was approved. (0 = pending, 1 = approved, 2 = rejected)',
+        ),
+        'created' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp that the file upload request was created.',
+        ),
+        'changed' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp that the file upload request was changed.',
+        ),
+        'note' => array(
+          'type' => 'text',
+          'size' => 'medium',
+          'description' => 'Notes for the individual file as entered by the moderator.'
+        ),
+        'processed_by' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'default' => 0,
+          'not null' => TRUE,
+          'description' => 'The UID of the user whom moderated the individual file.'
+        ),
+      ),
+      'indexes' => array(
+        'idx_status' => array('status')
+      ),
+      'foreign keys' => array(
+        'bullpen_rid' => array('table' => '', 'columns' => array('rid' => 'rid')),
+        'file_fid' => array('table' => 'file_managed', 'columns' => array('fid' => 'fid')),
+        'user_uid' => array('table' => 'users', 'columns' => array('processed_by' => 'uid'))
+      ),
+      'primary key' => array('rid', 'fid')
+    ),
+  );
+}

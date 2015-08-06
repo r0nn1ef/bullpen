@@ -1,0 +1,8 @@
+name = File Bullpen
+description = Allows files to be uploaded and assigned to nodes in a holding area for approval.
+dependencies[] = file
+dependencies[] = multiupload_filefield_widget
+dependencies[] = multiupload_imagefield_widget
+dependencies[] = token
+package = Custom
+core = 7.x
