@@ -37,19 +37,28 @@ function bullpen_menu() {
   );
 
   $items['node/%node/bullpen'] = array(
-    'title' => 'Files pending approval',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('bullpen_approval_form', 1),
+    'title' => 'Pending Files',
+    'page callback' => 'bullpen_request_list_page',
+    'page arguments' => array(1),
     'access arguments' => array('approve bullpen files'),
-    'file' => 'bullpen.pages.inc'
+    'file' => 'bullpen.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -5
+  );
+
+  $items['node/%node/bullpen/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK
   );
 
   $items['node/%node/bullpen/%bullpen_item'] = array(
-    'title' => 'File details',
+    'title' => 'Details',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('bullpen_item_approval_form', 3),
     'access arguments' => array('approve bullpen files'),
-    'file' => 'bullpen.pages.inc'
+    'file' => 'bullpen.pages.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 5,
   );
 
   $items['bullpen_autocomplete'] = array(
@@ -93,6 +102,10 @@ function bullpen_access($permission, $node) {
     return TRUE;
   }
   return FALSE;
+}
+
+function bullpen_item_load($rid) {
+  return load_bullpen_item($rid);
 }
 
 function load_bullpen_item($rid) {

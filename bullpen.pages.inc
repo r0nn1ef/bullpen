@@ -93,25 +93,55 @@ function bullpen_upload_form_validate($form, &$form_state) {
   }
 }
 
-function bullpen_approval_form($form, &$form_state, $node) {
-  $form = array();
+function bullpen_request_list_page($node) {
+  $build = array();
 
-  // Capture our node as a property so we can use it in the submit handler.
-  $form['#node'] = $node;
+  // Get the bullpen requests for this node.
+  $result = db_select('bullpen_request', 'r')
+    ->fields('r', array('rid'))
+    ->condition('r.entity_id', $node->nid, '=')
+    ->orderBy('r.created', 'ASC')->execute();
+  $rows = array();
+  $header = array(
+    '',
+    t('Submitted by'),
+    t('Date'),
+    t('# Files'),
+    array('data' => t('Operations'), 'colspan' => 1)
+  );
 
-  return $form;
-}
+  if ($result->rowCount() > 0) {
+    foreach (array_keys($result->fetchAllAssoc('rid')) as $rid ) {
+      $req = load_bullpen_item($rid);
+      $rows[] = array(
+        t('Request @rid', array('@rid' => $req->rid)),
+        l($req->author->name, 'user/' . $req->author->uid),
+        format_date($req->created, 'short'),
+        count($req->files),
+        l(t('view'), current_path() . '/' . $req->rid),
+      );
+    }
+  }
 
-function bullpen_approval_form_submit($form, &$form_state) {
+  $build['list_text'] = array(
+    '#prefix' => '<div class="bullpen-list-text-wrap">',
+    '#suffix' => '</div>',
+    '#markup' => '<p>' . t('Below is a listing of file upload requests for this node. Please review each request and approve the individual files if they meet the appropriate criteria.') . '</p>'
+  );
 
-}
+  $build['list_table'] = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => $rows,
+    '#empty' => t('There are currently no file requests.')
+  );
 
-function bullpen_approval_form_validate($form, &$form_state) {
-
+  return $build;
 }
 
 function bullpen_item_approval_form($form, $form_state, $bullpen_item) {
-
+  drupal_set_message(t('Not implemented'), 'warning');
+  return array();
 }
 
 function bullpen_item_approval_form_submit($form, $form_state) {
