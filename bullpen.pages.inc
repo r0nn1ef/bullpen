@@ -50,6 +50,40 @@ function bullpen_upload_form_submit($form, &$form_state) {
   );
   $rid = db_insert('bullpen_request')->fields($upload_request)->execute();
 
+  $upload_path = variable_get('bullpen_path', '');
+  if (substr($upload_path, (strlen($upload_path)-1), 1) !== '/') {
+    $upload_path .= '/';
+  }
+
+  $file_data = array();
+  $val_format = '(%d, %d, %d, %d, %d)';
+
+
+  foreach ($form_state['values']['bullpen'] as $uploaded_file) {
+    if ($uploaded_file['status'] == 'done') {
+      $source = $uploaded_file['tmppath'];
+      $destination = file_stream_wrapper_uri_normalize('private://' . $upload_path . '/' . $uploaded_file['name']);
+      // Rename it to its original name, and put it in its final home.
+      // Note - not using file_move here because if we call file_get_mime
+      // (in file_uri_to_object) while it has a .tmp extension, it horks.
+      $destination = file_unmanaged_move($source, $destination, FILE_EXISTS_RENAME);
+      $file = plupload_file_uri_to_object($destination);
+      file_save($file);
+
+      $file_data[] = sprintf($val_format, $rid,$file->fid,0,REQUEST_TIME,REQUEST_TIME);
+    }
+    else {
+      // @todo: move this to element validate or something and clean up t().
+      form_set_error('pud', "Upload of {$uploaded_file['name']} failed");
+    }
+  }
+
+  $sql = 'INSERT INTO {bullpen_files} (rid, fid, status, created, changed) VALUES';
+
+  $sql .= implode(',', $file_data);
+
+  db_query($sql);
+
   drupal_set_message(t('Request @rid successful.', array('@rid' => $rid)), 'status');
 }
 
