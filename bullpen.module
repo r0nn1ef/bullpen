@@ -4,6 +4,8 @@
  * Allows files to be uploaded and assigned to nodes in a holding area for approval.
  */
 
+require_once dirname( __FILE__ ) . '/bullpen.block.inc';
+
 /**
  * Implements hook_help().
  */
@@ -143,4 +145,25 @@ function load_bullpen_item($rid) {
   return $bullpen;
 }
 
-require_once dirname( __FILE__ ) . '/bullpen.block.inc';
+function _bullpen_get_entity_id_from_title($string, $entity_type='node') {
+  $types = array();
+  $query = db_select('node', 'n')
+    ->fields('n', array('nid', 'title'))
+    ->condition('n.title', trim($string), '=')
+    ->condition('n.status', 1, '=');
+
+  if ( count($types) ) {
+    $query->condition('n.type', $types, 'IN');
+  }
+
+  $result = $query->execute();
+
+  if ($result->rowCount() == 0) {
+    $return = FALSE;
+  } else {
+    $return = $result->fetchAssoc();
+    $return = $return['nid'];
+  }
+
+  return $return;
+}
