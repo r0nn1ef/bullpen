@@ -140,8 +140,47 @@ function bullpen_request_list_page($node) {
 }
 
 function bullpen_item_approval_form($form, $form_state, $bullpen_item) {
-  drupal_set_message(t('Not implemented'), 'warning');
-  return array();
+  $form = array();
+
+  $form['#bullpen'] = $bullpen_item;
+
+  $header = array(
+    t('Thumbnail'),
+    t('File size')
+  );
+  $rows = array();
+
+  foreach ($bullpen_item->files as $file) {
+    //header('content-type:text/plain');
+    //var_dump($file);
+    //exit;
+    $html = theme('image_style', array('style_name' => 'thumbnail', 'path' => $file['file']->uri));
+    // print $html;exit;
+    $rows[$file['file']->fid] = array(
+      $html,
+      format_size($file['file']->filesize),
+    );
+  }
+
+  $form['approval_instructions'] = array(
+    '#prefix' => '<div class="approval-instructions-wrap">',
+    '#suffix' => '</div>',
+    '#markup' => '<p>' . t('To approve the images submitted by @user, check the box next to the approved images and click the submit button.', array('@user' => $bullpen_item->author->name)) . '</p>'
+  );
+
+  $form['images_table'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => $rows,
+    '#empty' => t('No images found.')
+  );
+
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+
+  return $form;
 }
 
 function bullpen_item_approval_form_submit($form, $form_state) {
