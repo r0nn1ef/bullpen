@@ -3,5 +3,6 @@ description = Allows files to be uploaded and assigned to nodes in a holding are
 dependencies[] = file
 dependencies[] = plupload
 dependencies[] = token
+dependencies[] = private_files_download_permission
 package = Custom
 core = 7.x
