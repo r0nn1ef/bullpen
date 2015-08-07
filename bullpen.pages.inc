@@ -74,7 +74,7 @@ function bullpen_upload_form_submit($form, &$form_state) {
     }
     else {
       // @todo: move this to element validate or something and clean up t().
-      form_set_error('pud', "Upload of {$uploaded_file['name']} failed");
+      form_set_error('bullpen', "Upload of {$uploaded_file['name']} failed");
     }
   }
 
@@ -143,6 +143,7 @@ function bullpen_item_approval_form($form, $form_state, $bullpen_item) {
   $form = array();
 
   $form['#bullpen'] = $bullpen_item;
+  $form['#node'] = node_load($bullpen_item->entity_id);
 
   $header = array(
     t('Thumbnail'),
@@ -178,13 +179,49 @@ function bullpen_item_approval_form($form, $form_state, $bullpen_item) {
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Submit'),
+    '#access' => count($bullpen_item->files)
   );
 
   return $form;
 }
 
 function bullpen_item_approval_form_submit($form, $form_state) {
+  //header('content-type:text/plain');
+  //var_dump($form_state['values']['images_table']);
+  //exit;
+  $bullpen = $form['#bullpen'];
+  $node = $form['#node'];
 
+  $batch = array(
+    'finished' => 'bullpen_batch_finished',
+    'title' => t('Assigning files to @title', array('@title' => $node->title)),
+    'init_message' => t('Setting up transaction ...'),
+    'progress_message' => t('Processed @current out of @total.'),
+    'error_message' => t('Bullpen transfer has encountered an error.'),
+    'file' => drupal_get_path('module', 'bullpen') . '/bullpen.batch.inc',
+  );
+  $operations = array();
+
+  foreach ($form_state['values']['images_table'] as $key => $value) {
+    $file = file_load($key);
+    /*
+     * We don't want images that were not selected to be added to the node. These
+     * will be considered as "not approved" and therefore will be deleted.
+     */
+    if ( (int) $form_state['values']['images_table'][$key] == 0 ) {
+      $operations[] = array('bullpen_process_approved_file', $file, $bullpen, $node);
+    } else {
+      $operations[] = array('bullpen_process_denied_file', $file, $bullpen);
+    }
+  }
+
+  $operations[] = array('bullpen_batch_cleanup', $bullpen);
+
+
+  $batch['operations'] = $operations;
+
+  batch_set($batch);
+  batch_process('node/' . $node->nid . '/bullpen');
 }
 
 /**
