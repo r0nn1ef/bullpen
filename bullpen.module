@@ -113,6 +113,7 @@ function load_bullpen_item($rid) {
     ->fields('r', array('rid', 'description', 'entity_id', 'uid', 'created', 'changed'));
   $query->leftJoin('bullpen_files', 'bf', 'r.rid=bf.rid');
 
+  $query->addField('bf', 'iid');
   $query->addField('bf', 'fid');
   $query->addField('bf', 'status');
   $query->addField('bf', 'created', 'f_created');
@@ -121,7 +122,7 @@ function load_bullpen_item($rid) {
   $query->addField('bf', 'processed_by');
 
   $query->condition('r.rid', $rid, '=');
-  $query->orderBy('bf.fid, r.rid');
+  $query->orderBy('bf.iid, bf.fid, r.rid');
   $result = $query->execute();
 
   if ($result->rowCount() == 0) {
@@ -142,7 +143,7 @@ function load_bullpen_item($rid) {
       $bullpen->changed = (int)$row['changed'];
       $bullpen->files = array();
     }
-    if ( (int)$row['fid'] > 0 ) {
+    if ( (int)$row['iid'] > 0 ) {
       $file = array(
         'file' => file_load((int)$row['fid']),
         'status' => (int)$row['status'],
@@ -151,7 +152,7 @@ function load_bullpen_item($rid) {
         'note' => trim($row['note']),
         'processed_by' => ((int)$row['processed_by'] == 0 ? NULL : user_load((int)$row['processed_by']))
       );
-      $bullpen->files[(int)$row['fid']] = $file;
+      $bullpen->files[(int)$row['iid']] = $file;
     }
   }
 
@@ -179,4 +180,28 @@ function _bullpen_get_entity_id_from_title($string, $entity_type='node') {
   }
 
   return $return;
+}
+
+function bullpen_remove_request($rid) {
+  watchdog('bullpen', 'Bullpen request @rid being deleted.', array('@rid' => $rid), WATCHDOG_DEBUG);
+  db_delete('bullpen_request')
+    ->condition('rid', $rid, '=')
+    ->execute();
+}
+
+function bullpen_delete_file($files) {
+  bullpen_delete_multiple($files);
+}
+
+function bullpen_delete_files($files) {
+
+  // Delete the physical file from the system.
+  foreach ( $files as $file ) {
+    file_delete($file, TRUE);
+  }
+
+  $keys = array_keys($files);
+  db_delete('bullpen_files')
+    ->condition('fid', $keys, 'IN')
+    ->execute();
 }
