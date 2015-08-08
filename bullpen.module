@@ -23,6 +23,16 @@ function bullpen_help($path, $arg) {
 function bullpen_menu() {
   $items = array();
 
+  $items['admin/config/media/bullpen'] = array(
+    'title' => 'Bullpen',
+    'description' => 'Configure Bullpen file uploads settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('bullpen_settings_form'),
+    'access arguments' => array('administer bullpen settings'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'bullpen.admin.inc',
+  );
+
   $items['bullpen'] = array(
     'title' => 'Upload',
     'page callback' => 'drupal_get_form',
@@ -61,6 +71,15 @@ function bullpen_menu() {
     'weight' => 5,
   );
 
+  $items['node/%node/bullpen/%bullpen_item/delete'] = array(
+    'title' => 'Details',
+    'page callback' => 'bullpen_item_delete',
+    'page arguments' => array(3),
+    'access arguments' => array('administer bullpen requests'),
+    'file' => 'bullpen.pages.inc',
+    'type' => MENU_NORMAL_ITEM,
+  );
+
   $items['bullpen_autocomplete'] = array(
     'title' => 'Bullpen autocomplete',
     'page callback' => 'bullpen_autocomplete',
@@ -91,14 +110,20 @@ function bullpen_permission() {
       'description' => t('Change various settings for the Bullpen configuration.'),
       'restrict access' => TRUE,
     ),
+    'administer bullpen requests' => array(
+      'title' => t('Administer bullpen requests'),
+      'description' => t('Administrative utility that gives full control over bullpen uploads.'),
+      'restrict access' => TRUE,
+    ),
   );
 
   return $permissions;
 }
 
 function bullpen_access($permission, $node) {
+  global $user;
   $supported_types = variable_get('bullpen_supported_node_types', array());
-  if ( user_access($permission) && in_array($node->type, $supported_types)) {
+  if (user_access('administer bullpen requests', $user) || ( user_access($permission) && in_array($node->type, $supported_types)) ) {
     return TRUE;
   }
   return FALSE;
