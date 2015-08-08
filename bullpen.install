@@ -63,6 +63,12 @@ function bullpen_schema() {
     'bullpen_files' => array(
       'description' => 'Lookup table to tie uploaded files managed by Drupal to a "bullpen" for an entity.',
       'fields' => array(
+        'iid' => array(
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Primary identifier for the bullpen files.',
+        ),
         'rid' => array(
           'type' => 'int',
           'unsigned' => TRUE,
@@ -112,14 +118,19 @@ function bullpen_schema() {
         ),
       ),
       'indexes' => array(
-        'idx_status' => array('status')
+        'idx_status' => array('status'),
+        'idx_fid' => array('fid'),
+        'idx_rid' => array('rid'),
       ),
       'foreign keys' => array(
         'bullpen_rid' => array('table' => '', 'columns' => array('rid' => 'rid')),
         'file_fid' => array('table' => 'file_managed', 'columns' => array('fid' => 'fid')),
         'user_uid' => array('table' => 'users', 'columns' => array('processed_by' => 'uid'))
       ),
-      'primary key' => array('rid', 'fid')
+      'unique keys' => array(
+        'unq_rid_fid' => array('fid', 'rid'),
+      ),
+      'primary key' => array('iid')
     ),
   );
 }
