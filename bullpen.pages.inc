@@ -152,11 +152,8 @@ function bullpen_item_approval_form($form, $form_state, $bullpen_item) {
   $rows = array();
 
   foreach ($bullpen_item->files as $file) {
-    //header('content-type:text/plain');
-    //var_dump($file);
-    //exit;
     $html = theme('image_style', array('style_name' => 'thumbnail', 'path' => $file['file']->uri));
-    // print $html;exit;
+
     $rows[$file['file']->fid] = array(
       $html,
       format_size($file['file']->filesize),
@@ -186,9 +183,6 @@ function bullpen_item_approval_form($form, $form_state, $bullpen_item) {
 }
 
 function bullpen_item_approval_form_submit($form, $form_state) {
-  //header('content-type:text/plain');
-  //var_dump($form_state['values']['images_table']);
-  //exit;
   $bullpen = $form['#bullpen'];
   $node = $form['#node'];
 
@@ -200,7 +194,7 @@ function bullpen_item_approval_form_submit($form, $form_state) {
     'error_message' => t('Bullpen transfer has encountered an error.'),
     'file' => drupal_get_path('module', 'bullpen') . '/bullpen.batch.inc',
   );
-  $operations = array();
+  $operations = $files_to_add = $files_to_delete = array();
 
   foreach ($form_state['values']['images_table'] as $key => $value) {
     $file = file_load($key);
@@ -208,14 +202,21 @@ function bullpen_item_approval_form_submit($form, $form_state) {
      * We don't want images that were not selected to be added to the node. These
      * will be considered as "not approved" and therefore will be deleted.
      */
-    if ( (int) $form_state['values']['images_table'][$key] == 0 ) {
-      $operations[] = array('bullpen_process_approved_file', $file, $bullpen, $node);
+    if ( (int) $form_state['values']['images_table'][$key] > 0 ) {
+      $files_to_add[] = $file;
     } else {
-      $operations[] = array('bullpen_process_denied_file', $file, $bullpen);
+      $files_to_delete[$key] = $file;
     }
   }
 
-  $operations[] = array('bullpen_batch_cleanup', $bullpen);
+  if ( count($files_to_add) ) {
+    $operations[] = array( 'bullpen_process_approved_file', array($files_to_add, $bullpen, $node) );
+  }
+  if ( count($files_to_delete) ) {
+    $operations[] = array( 'bullpen_process_denied_file', array($files_to_delete, $bullpen) );
+  }
+
+  $operations[] = array( 'bullpen_batch_cleanup', array($bullpen) );
 
 
   $batch['operations'] = $operations;
