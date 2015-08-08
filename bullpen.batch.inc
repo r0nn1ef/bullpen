@@ -13,7 +13,7 @@
 
 function bullpen_process_approved_file($files, $bullpen, $node, &$context) {
   // @todo this needs to be dynamic, but for now set the name of the field manually.
-  $field_name = 'field_image';
+  $field_name = 'field_gallery_image';
   // Get the directory where the files for the node type are stored.
   $image_field = field_info_instance('node', $field_name, $node->type);
   $field_info = field_info_field($field_name);
@@ -26,7 +26,7 @@ function bullpen_process_approved_file($files, $bullpen, $node, &$context) {
     $destination = $path . (substr($path, (strlen($path)-1), 1) != '/' ? '/' : '') . $source->filename;
     $file = file_move($source, $destination);
     // Add the $file->fid to the node's image field and save the node.
-    $node->field_image[LANGUAGE_NONE][] = (array)$file;
+    $node->field_gallery_image[LANGUAGE_NONE][] = (array)$file;
     // Add the fid to an array so we can remove it from the bullpen files table.
     $sources[] = $source->fid;
   }
