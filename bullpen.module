@@ -129,6 +129,23 @@ function bullpen_access($permission, $node) {
   return FALSE;
 }
 
+/**
+ * Implements hook_node_view_alter().
+ */
+function bullpen_node_view_alter(&$build) {
+  $types = variable_get('bullpen_supported_node_types', array());
+
+  if (count($types) && user_access('upload files to bullpen') && isset($build['#node']) && in_array($build['#node']->type, $types) && $build['#view_mode'] == 'full') {
+    $node = $build['#node'];
+    $links = array(
+      l(t('Add photos'), 'bullpen', array('query' => array('eid' => $node->nid))),
+    );
+    $build['action_links'] = array(
+      '#markup' => theme('item_list', array('items' => $links, 'attributes' => array('class' => array('action-links'))))
+    );
+  }
+}
+
 function bullpen_item_load($rid) {
   return load_bullpen_item($rid);
 }
