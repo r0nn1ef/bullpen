@@ -62,7 +62,7 @@ function bullpen_upload_form_submit($form, &$form_state) {
   foreach ($form_state['values']['bullpen'] as $uploaded_file) {
     if ($uploaded_file['status'] == 'done') {
       $source = $uploaded_file['tmppath'];
-      $destination = file_stream_wrapper_uri_normalize('private://' . $upload_path . '/' . $uploaded_file['name']);
+      $destination = file_stream_wrapper_uri_normalize('private://' . $upload_path . $uploaded_file['name']);
       // Rename it to its original name, and put it in its final home.
       // Note - not using file_move here because if we call file_get_mime
       // (in file_uri_to_object) while it has a .tmp extension, it horks.
@@ -94,6 +94,7 @@ function bullpen_upload_form_validate($form, &$form_state) {
 }
 
 function bullpen_request_list_page($node) {
+  global $user;
   $build = array();
 
   // Get the bullpen requests for this node.
@@ -107,21 +108,32 @@ function bullpen_request_list_page($node) {
     t('Submitted by'),
     t('Date'),
     t('# Files'),
-    array('data' => t('Operations'), 'colspan' => 1)
+    array('data' => t('Operations'))
   );
+
+  $colspan = 1;
 
   if ($result->rowCount() > 0) {
     foreach (array_keys($result->fetchAllAssoc('rid')) as $rid ) {
       $req = load_bullpen_item($rid);
-      $rows[] = array(
+      $row = array(
         t('Request @rid', array('@rid' => $req->rid)),
         l($req->author->name, 'user/' . $req->author->uid),
         format_date($req->created, 'short'),
         count($req->files),
         l(t('view'), current_path() . '/' . $req->rid),
       );
+      if (user_access('administer bullpen requests', $user)) {
+        $row[] = l(t('delete'), current_path() . '/' . $req->rid . '/delete');
+        if ($colspan == 1) {
+          $colspan = 2;
+        }
+      }
+      $rows[] = $row;
     }
   }
+
+  $header[4]['colspan'] = $colspan;
 
   $build['list_text'] = array(
     '#prefix' => '<div class="bullpen-list-text-wrap">',
@@ -223,6 +235,24 @@ function bullpen_item_approval_form_submit($form, $form_state) {
 
   batch_set($batch);
   batch_process('node/' . $node->nid . '/bullpen');
+}
+
+function bullpen_item_delete($bullpen) {
+  $destination = 'node/' . $bullpen->entity_id . '/bullpen';
+
+  $files = array();
+  foreach ($bullpen->files as $key => $value) {
+    $files[$key] = $bullpen->files[$key]['file'];
+  }
+
+  if (count($files)) {
+    bullpen_delete_files($files);
+  }
+  bullpen_remove_request($bullpen->rid);
+
+  drupal_set_message(t('Bullpen request #@rid (submitted by @author) was deleted.', array('@rid' => $bullpen->rid, '@author' => $bullpen->author->name)));
+
+  drupal_goto($destination);
 }
 
 /**
