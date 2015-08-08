@@ -9,14 +9,57 @@
 function bullpen_upload_form($form, &$form_state) {
   $form = array();
 
-  $form['title'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Node'),
-    '#description' => t('Begin typing the name of the node that you wish to submit files for. The autocomplete field will display nodes who\'s title is similiar and allow you to select from the list.'),
-    '#default_value' => '',
-    '#autocomplete_path' => 'bullpen_autocomplete',
-    '#required' => TRUE,
-  );
+  /*
+   * There was an entity ID (node) passed in the URL so we know they want to add
+   * photos to a specific node. We'll grab the info from the db and make the title
+   * field hidden and display that title for the user instead. Otherwise, we'll
+   * give them an auto complete field and let the user "search" for the node they
+   * want to add photos to.
+   */
+  if (isset($_GET['eid']) && is_numeric($_GET['eid'])) {
+    $eid = (int)$_GET['eid'];
+    $types = variable_get('bullpen_supported_node_types', array());
+    $result = db_select('node', 'n')
+      ->fields('n', array('title', 'type'))
+      ->condition('n.nid', $eid, '=')
+      ->execute();
+    if($result->rowCount() > 0) {
+      $title = $result->fetchAssoc();
+
+      if (in_array($title['type'], $types)) {
+        $title = $title['title'];
+
+        $form['title'] = array(
+          '#type' => 'hidden',
+          '#value' => $title,
+        );
+
+        $form['title_text'] = array(
+          '#prefix' => '<h2 class="bullpen-node-title">',
+          '#suffix' => '</h2>',
+          '#markup' => t('Add file(s) to <em>@title</em>', array('@title' => $title)),
+        );
+      } else {
+        drupal_set_message(t('You are not allowed to upload files to @name. Default behavior provided below.', array('@name' => $title['title'])), 'warning');
+      }
+    } else {
+      drupal_set_message(t('Invalid entity ID @eid. Default behavior provided below.', array('@eid' => $eid)), 'warning');
+    }
+  }
+
+  // If there was not an entity ID specified in the URL or there wasn't
+  //a matching (allowed) entity, add the title field autocomplete.
+  if (!isset($form['title'])) {
+    $form['title'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Node'),
+      '#description' => t('Begin typing the name of the node that you wish to submit files for. The autocomplete field will display nodes who\'s title is similiar and allow you to select from the list.'),
+      '#default_value' => '',
+      '#autocomplete_path' => 'bullpen_autocomplete',
+      '#required' => TRUE,
+    );
+  }
+
 
   $form['bullpen'] = array(
     '#type' => 'plupload',
