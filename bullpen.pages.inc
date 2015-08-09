@@ -29,9 +29,9 @@ function bullpen_upload_form($form, &$form_state) {
       if (in_array($title['type'], $types)) {
         $title = $title['title'];
 
-        $form['title'] = array(
-          '#type' => 'hidden',
-          '#value' => $title,
+        $form['title_id'] = array(
+          '#type' => 'value',
+          '#value' => $eid,
         );
 
         $form['title_text'] = array(
@@ -39,6 +39,13 @@ function bullpen_upload_form($form, &$form_state) {
           '#suffix' => '</h2>',
           '#markup' => t('Add file(s) to <em>@title</em>', array('@title' => $title)),
         );
+
+        /*
+         * Since the user came from a specific node, we'll send them back there when
+         * their upload is complete.
+         */
+        //$form['destination']['path'] = 'node/' . $eid;
+
       } else {
         drupal_set_message(t('You are not allowed to upload files to @name. Default behavior provided below.', array('@name' => $title['title'])), 'warning');
       }
@@ -49,7 +56,7 @@ function bullpen_upload_form($form, &$form_state) {
 
   // If there was not an entity ID specified in the URL or there wasn't
   //a matching (allowed) entity, add the title field autocomplete.
-  if (!isset($form['title'])) {
+  if (!isset($form['title_id'])) {
     $form['title'] = array(
       '#type' => 'textfield',
       '#title' => t('Node'),
@@ -84,8 +91,10 @@ function bullpen_upload_form($form, &$form_state) {
 
 function bullpen_upload_form_submit($form, &$form_state) {
   global $user;
+  $entity_id = isset($form_state['values']['title_id']) ? $form_state['values']['title_id'] : _bullpen_get_entity_id_from_title($form_state['values']['title']);
+  $node = node_load($entity_id);
   $upload_request = array(
-    'entity_id' => _bullpen_get_entity_id_from_title($form_state['values']['title']),
+    'entity_id' => $entity_id,
     'description' => '',
     'uid' => $user->uid,
     'created' => REQUEST_TIME,
@@ -127,12 +136,14 @@ function bullpen_upload_form_submit($form, &$form_state) {
 
   db_query($sql);
 
-  drupal_set_message(t('Request @rid successful.', array('@rid' => $rid)), 'status');
+  drupal_set_message(t('Successfully uploaded @count files to <em>@name</em>', array('@count' => count($file_data), '@name' => $node->title)), 'status');
 }
 
 function bullpen_upload_form_validate($form, &$form_state) {
-  if (! _bullpen_get_entity_id_from_title($form_state['values']['title']) ) {
-    form_set_error('entity_id', t('Invalid node &mdash; node @title does not exist!', array('@title' => $form_state['values']['title'])));
+  if (!isset($form_state['values']['title_id'])) {
+    if (! _bullpen_get_entity_id_from_title($form_state['values']['title']) ) {
+      form_set_error('entity_id', t('Invalid node &mdash; node @title does not exist!', array('@title' => $form_state['values']['title'])));
+    }
   }
 }
 
