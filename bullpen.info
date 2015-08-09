@@ -6,3 +6,4 @@ dependencies[] = plupload
 dependencies[] = private_files_download_permission
 package = Custom
 core = 7.x
+version 7.x-1.1
