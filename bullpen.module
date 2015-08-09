@@ -138,7 +138,7 @@ function bullpen_node_view_alter(&$build) {
   if (count($types) && user_access('upload files to bullpen') && isset($build['#node']) && in_array($build['#node']->type, $types) && $build['#view_mode'] == 'full') {
     $node = $build['#node'];
     $links = array(
-      l(t('Add photos'), 'bullpen', array('query' => array('eid' => $node->nid))),
+      l(t('Add photos'), 'bullpen', array('query' => array('eid' => $node->nid, 'destination' => current_path() ))),
     );
     $build['action_links'] = array(
       '#markup' => theme('item_list', array('items' => $links, 'attributes' => array('class' => array('action-links'))))
