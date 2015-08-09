@@ -4,11 +4,11 @@ File Bullpen
 CONTENTS OF THIS FILE
 ---------------------
    
-* Introduction
-* Requirements
-* Installation
-* Configuration
-* Maintainers
+ * Introduction
+ * Requirements
+ * Installation
+ * Configuration
+ * Maintainers
  
  
  Introduction
