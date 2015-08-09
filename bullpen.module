@@ -50,7 +50,8 @@ function bullpen_menu() {
     'title' => 'Pending Files',
     'page callback' => 'bullpen_request_list_page',
     'page arguments' => array(1),
-    'access arguments' => array('approve bullpen files'),
+    'access callback' => 'bullpen_tab_access',
+    'access arguments' => array(1),
     'file' => 'bullpen.pages.inc',
     'type' => MENU_LOCAL_TASK,
     'weight' => -5
@@ -125,6 +126,14 @@ function bullpen_access($permission, $node) {
   $supported_types = variable_get('bullpen_supported_node_types', array());
   if (user_access('administer bullpen requests', $user) || ( user_access($permission) && in_array($node->type, $supported_types)) ) {
     return TRUE;
+  }
+  return FALSE;
+}
+
+function bullpen_tab_access($node) {
+  $allowed_types = variable_get('bullpen_supported_node_types', array());
+  if (in_array($node->type, $allowed_types)) {
+    return user_access('administer bullpen requests') || user_access('approve bullpen files');
   }
   return FALSE;
 }
